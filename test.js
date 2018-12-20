@@ -57,6 +57,16 @@ test('Query registered protocols', t => {
   t.deepEquals(actual, expected, 'returns registered protocols');
 });
 
+test('Resolve registered protocol', async t => {
+  const handler = new ProtocolHandler('url');
+  const url = 's3://dummyKey';
+  const expected = 'https://example.org';
+  handler.protocol('s3:', url => expected);
+  const actual = await handler.resolve(url);
+  t.plan(1);
+  t.equals(actual, expected, 'resolves url with registered protocol');
+});
+
 test('Handle registered protocol', t => {
   const handler = new ProtocolHandler('url');
   const stub = sinon.stub();
@@ -64,13 +74,13 @@ test('Handle registered protocol', t => {
   const redirectUrl = 'https://example.org';
   const query = { url: encodeURIComponent(url) };
   t.plan(1);
-  handler.protocol('s3:', (_, res) => res.redirect(redirectUrl));
+  handler.protocol('s3:', url => redirectUrl);
   const mw = handler.middleware();
   mw({ query }, { redirect: stub });
-  t.equals(
+  setTimeout(() => t.equals(
     stub.calledOnce && stub.getCall(0).args[0], redirectUrl,
     'applies correct protocol handler'
-  );
+  ), 0);
 });
 
 test('Handle unknown protocol', t => {
@@ -82,8 +92,8 @@ test('Handle unknown protocol', t => {
   handler.middleware();
   const mw = handler.middleware();
   mw({ query }, { sendStatus: stub });
-  t.equals(
+  setTimeout(() => t.equals(
     stub.calledOnce && stub.getCall(0).args[0], 400,
     'returns `400 Bad Request` if protocol is not registered'
-  );
+  ), 0);
 });

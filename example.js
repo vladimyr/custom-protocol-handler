@@ -1,10 +1,11 @@
-'use strict';
-
 const app = require('express')();
-const handler = require('./')('url');
+const protocolHandler = require('./')();
 
 const port = 3000;
-handler.protocol('s3://', (url, res) => res.redirect('https://example.com'));
+protocolHandler.protocol('s3://', url => 'https://example.com');
 
-app.get('/resolve', handler.middleware());
+protocolHandler.resolve('s3://test')
+  .then(url => console.log('Resolved: s3://test to %s', url));
+
+app.get('/resolve', protocolHandler.middleware());
 app.listen(port, () => console.log('listening on port: %i!', port));

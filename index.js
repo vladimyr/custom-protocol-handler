@@ -2,6 +2,7 @@
 
 const { URL } = require('url');
 const debug = require('debug')('protocol-handler');
+const pTry = require('p-try');
 
 const BLACKLISTED_SCHEMES = ['http:', 'https:'];
 const isValidScheme = str => /^[a-z0-9+]{2,}:$/.test(str);
@@ -56,12 +57,32 @@ class ProtocolHandler {
    * @example
    * // check if protocol is registered
    * const handler = new ProtocolHandler();
-   * handler.register('s3://', resolve);
+   * handler.protocol('s3://', resolve);
    * console.log(handler.protocols.has('s3:'));
    * //=> true
    */
   get protocols() {
     return new Set(this._handlers.keys());
+  }
+
+  /**
+   * Resolve url with registered protocol handler
+   * @param {String} url target url
+   * @returns {Promise<String>} resolved url, redirect location
+   *
+   * @example
+   * // create handler
+   * const handler = new ProtocolHandler();
+   * handler.protocol('s3://', url => 'https://example.com');
+   * // resolve url
+   * handler.resolve('s3://test').then(url => console.log(url));
+   * //=> https://example.com
+   */
+  resolve(url) {
+    const protocol = getProtocol(url);
+    debug('url=%s, protocol=%s', url, protocol);
+    const handler = this._handlers.get(protocol);
+    return pTry(() => handler && handler(url));
   }
 
   /**
@@ -76,13 +97,12 @@ class ProtocolHandler {
    * app.use(handler.middleware());
    */
   middleware() {
-    return (req, res) => {
+    return async (req, res) => {
       const url = decodeURIComponent(req.query[this._param]);
-      const protocol = getProtocol(url);
-      debug('url=%s, protoecol=%s', url, protocol);
-      const handler = this._handlers.get(protocol);
-      if (!handler) return res.sendStatus(400);
-      return handler(url, res);
+      const redirectUrl = await this.resolve(url);
+      debug('redirect url=%s', redirectUrl || '');
+      if (!redirectUrl) return res.sendStatus(400);
+      return res.redirect(redirectUrl);
     };
   }
 }
@@ -119,19 +139,18 @@ function getProtocol(url) {
  * Resolver function for specific protocol
  * @callback ProtocolCallback
  * @param {String} url target url
- * @param {IRequest} res server response object
+ * @returns {String|Promise<String>} resolved url _redirect location_
  *
  * @example
  * // Resolve gdrive urls
  * const { fetchInfo } = require('gdrive-file-info');
  *
- * async function resolve(url, res) {
+ * async function resolve(url) {
  *   const itemId = new URL(url).pathname;
  *   const fileInfo = await fetchInfo(itemId);
- *   res.redirect(fileInfo.downloadUrl);
+ *   return fileInfo.downloadUrl;
  * }
  */
-
 /**
  * @name IRequest
  * @desc Express server request

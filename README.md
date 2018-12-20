@@ -13,10 +13,14 @@ const app = require('express')();
 const protocolHandler = require('express-protocol-handler')();
 
 const port = 3000;
-protocolHandler.protocol('s3://', (url, res) => res.redirect('https://example.com'));
+protocolHandler.protocol('s3://', url => 'https://example.com');
 
 app.get('/resolve', protocolHandler.middleware());
 app.listen(port, () => console.log('listening on port: %i!', port));
+
+// Standalone usage
+protocolHandler.resolve('s3://test').then(url => console.log(url));
+//=> https://example.com
 ```
 
     GET /resolve?url=s3://test HTTP/1.1
@@ -52,16 +56,19 @@ app.listen(port, () => console.log('listening on port: %i!', port));
     -   [protocols](#protocols)
         -   [Properties](#properties)
         -   [Examples](#examples-1)
-    -   [middleware](#middleware)
+    -   [resolve](#resolve)
+        -   [Parameters](#parameters-2)
         -   [Examples](#examples-2)
+    -   [middleware](#middleware)
+        -   [Examples](#examples-3)
 -   [module.exports](#moduleexports)
-    -   [Parameters](#parameters-2)
-    -   [Examples](#examples-3)
+    -   [Parameters](#parameters-3)
+    -   [Examples](#examples-4)
 -   [ProtocolHandlerOptions](#protocolhandleroptions)
     -   [Properties](#properties-1)
 -   [ProtocolCallback](#protocolcallback)
-    -   [Parameters](#parameters-3)
-    -   [Examples](#examples-4)
+    -   [Parameters](#parameters-4)
+    -   [Examples](#examples-5)
 -   [IRequest](#irequest)
 -   [IResponse](#iresponse)
 
@@ -107,10 +114,31 @@ Returns **[ProtocolHandler](#protocolhandler)** instance to allow chaining
 ```javascript
 // check if protocol is registered
 const handler = new ProtocolHandler();
-handler.register('s3://', resolve);
+handler.protocol('s3://', resolve);
 console.log(handler.protocols.has('s3:'));
 //=> true
 ```
+
+#### resolve
+
+Resolve url with registered protocol handler
+
+##### Parameters
+
+-   `url` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** target url
+
+##### Examples
+
+```javascript
+// create handler
+const handler = new ProtocolHandler();
+handler.protocol('s3://', url => 'https://example.com');
+// resolve url
+handler.resolve('s3://test').then(url => console.log(url));
+//=> https://example.com
+```
+
+Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** resolved url, redirect location
 
 #### middleware
 
@@ -162,7 +190,6 @@ Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Sta
 #### Parameters
 
 -   `url` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** target url
--   `res` **[IRequest](#irequest)** server response object
 
 #### Examples
 
@@ -170,12 +197,14 @@ Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Sta
 // Resolve gdrive urls
 const { fetchInfo } = require('gdrive-file-info');
 
-async function resolve(url, res) {
+async function resolve(url) {
   const itemId = new URL(url).pathname;
   const fileInfo = await fetchInfo(itemId);
-  res.redirect(fileInfo.downloadUrl);
+  return fileInfo.downloadUrl;
 }
 ```
+
+Returns **([String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>)** resolved url _redirect location_
 
 ### IRequest
 
