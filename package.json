@@ -1,6 +1,6 @@
 {
   "name": "express-protocol-handler",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Resolve custom protocols using Express middleware",
   "main": "index.js",
   "scripts": {
