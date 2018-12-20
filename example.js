@@ -1,10 +1,9 @@
 'use strict';
 
-const ProtocolHandler = require('./');
 const app = require('express')();
+const handler = require('./')('url');
 
 const port = 3000;
-const handler = new ProtocolHandler();
 handler.protocol('s3://', (url, res) => res.redirect('https://example.com'));
 
 app.get('/resolve', handler.middleware());

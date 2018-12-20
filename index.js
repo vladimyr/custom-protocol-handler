@@ -79,7 +79,7 @@ class ProtocolHandler {
     return (req, res) => {
       const url = decodeURIComponent(req.query[this._param]);
       const protocol = getProtocol(url);
-      debug('url=%s, protocol=%s', url, protocol);
+      debug('url=%s, protoecol=%s', url, protocol);
       const handler = this._handlers.get(protocol);
       if (!handler) return res.sendStatus(400);
       return handler(url, res);
@@ -87,7 +87,18 @@ class ProtocolHandler {
   }
 }
 
-module.exports = ProtocolHandler;
+/**
+ * Create new ProtocolHandler instance
+ * @name module.exports
+ * @param {String} [param='url'] name of query param containing target url
+ * @param {ProtocolHandlerOptions} [options={}] protocol handler options
+ * @returns {ProtocolHandler} instance
+ *
+ * @example
+ * const handler = require('express-protocol-handler')('query');
+ */
+module.exports = (param, options) => new ProtocolHandler(param, options);
+module.exports.ProtocolHandler = ProtocolHandler;
 
 function normalize(scheme = '') {
   return scheme.toLowerCase().trim().replace(/:\/\/$/, ':');

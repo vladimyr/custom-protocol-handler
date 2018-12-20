@@ -1,6 +1,6 @@
 'use strict';
 
-const ProtocolHandler = require('./');
+const { ProtocolHandler } = require('./');
 const sinon = require('sinon');
 const test = require('tape');
 

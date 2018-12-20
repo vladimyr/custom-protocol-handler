@@ -10,13 +10,12 @@
 
 ```js
 const app = require('express')();
-const ProtocolHandler = require('express-protocol-handler');
+const protocolHandler = require('express-protocol-handler')();
 
 const port = 3000;
-const handler = new ProtocolHandler();
-handler.protocol('s3://', (url, res) => res.redirect('https://example.com'));
+protocolHandler.protocol('s3://', (url, res) => res.redirect('https://example.com'));
 
-app.get('/resolve', handler.middleware());
+app.get('/resolve', protocolHandler.middleware());
 app.listen(port, () => console.log('listening on port: %i!', port));
 ```
 
@@ -55,11 +54,14 @@ app.listen(port, () => console.log('listening on port: %i!', port));
         -   [Examples](#examples-1)
     -   [middleware](#middleware)
         -   [Examples](#examples-2)
+-   [module.exports](#moduleexports)
+    -   [Parameters](#parameters-2)
+    -   [Examples](#examples-3)
 -   [ProtocolHandlerOptions](#protocolhandleroptions)
     -   [Properties](#properties-1)
 -   [ProtocolCallback](#protocolcallback)
-    -   [Parameters](#parameters-2)
-    -   [Examples](#examples-3)
+    -   [Parameters](#parameters-3)
+    -   [Examples](#examples-4)
 -   [IRequest](#irequest)
 -   [IResponse](#iresponse)
 
@@ -125,6 +127,23 @@ app.use(handler.middleware());
 ```
 
 Returns **function ([IRequest](#irequest), [IResponse](#iresponse))** Express middleware
+
+### module.exports
+
+Create new ProtocolHandler instance
+
+#### Parameters
+
+-   `param` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of query param containing target url (optional, default `'url'`)
+-   `options` **[ProtocolHandlerOptions](#protocolhandleroptions)** protocol handler options (optional, default `{}`)
+
+#### Examples
+
+```javascript
+const handler = require('express-protocol-handler')('query');
+```
+
+Returns **[ProtocolHandler](#protocolhandler)** instance
 
 ### ProtocolHandlerOptions
 
