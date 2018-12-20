@@ -1,0 +1,52 @@
+{
+  "name": "express-protocol-handler",
+  "version": "0.0.0",
+  "description": "Resolve custom protocols using Express middleware",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test.js | tap-spec",
+    "test:debug": "DEBUG=* node --inspect-brk test.js | tap-spec",
+    "lint": "eslint .",
+    "docs": "documentation readme ./index.js --section=API",
+    "release": "np"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "express",
+    "protocol",
+    "register",
+    "handler"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/vladimyr/express-protocol-handler.git"
+  },
+  "author": {
+    "email": "d.vladimyr@gmail.com",
+    "name": "Dario Vladovic",
+    "url": "https://github.com/vladimyr"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vladimyr/express-protocol-handler/issues"
+  },
+  "homepage": "https://github.com/vladimyr/express-protocol-handler",
+  "devDependencies": {
+    "@types/express": "^4.16.0",
+    "debug": "^4.1.0",
+    "documentation": "^9.1.0",
+    "eslint": "^5.9.0",
+    "eslint-config-semistandard": "^13.0.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-node": "^8.0.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "global-tunnel-ng": "^2.7.1",
+    "sinon": "^7.2.2",
+    "tap-spec": "^5.0.0",
+    "tape": "^4.9.1"
+  }
+}
