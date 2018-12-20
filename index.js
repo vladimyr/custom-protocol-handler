@@ -13,10 +13,10 @@ const isValidScheme = str => /^[a-z0-9+]{2,}:$/.test(str);
 class ProtocolHandler {
   /**
    * @constructor
-   * @param {String} param name of query param containing target url
+   * @param {String} [param='url'] name of query param containing target url
    * @param {ProtocolHandlerOptions} [options={}] protocol handler options
    */
-  constructor(param, { blacklist = [] } = {}) {
+  constructor(param = 'url', { blacklist = [] } = {}) {
     this._param = param;
     this._blacklist = [...BLACKLISTED_SCHEMES, ...blacklist];
     this._handlers = new Map();
