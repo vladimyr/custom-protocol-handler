@@ -1,4 +1,5 @@
-# express-protocol-handler [![build status](https://badgen.net/travis/vladimyr/express-protocol-handler)](https://travis-ci.com/vladimyr/express-protocol-handler/) [![install size](https://badgen.net/packagephobia/install/express-protocol-handler)](https://packagephobia.now.sh/result?p=express-protocol-handler) [![npm package version](https://badgen.net/npm/v/express-protocol-handler)](https://npm.im/express-protocol-handler) [![github license](https://badgen.net/github/license/vladimyr/express-protocol-handler)](https://github.com/vladimyr/express-protocol-handler/blob/master/LICENSE) [![js semistandard style](https://badgen.net/badge/code%20style/semistandard/pink)](https://github.com/Flet/semistandard)
+# express-protocol-handler
+[![build status](https://badgen.net/travis/vladimyr/express-protocol-handler)](https://travis-ci.com/vladimyr/express-protocol-handler/) [![install size](https://badgen.net/packagephobia/install/express-protocol-handler)](https://packagephobia.now.sh/result?p=express-protocol-handler) [![npm package version](https://badgen.net/npm/v/express-protocol-handler)](https://npm.im/express-protocol-handler) [![github license](https://badgen.net/github/license/vladimyr/express-protocol-handler)](https://github.com/vladimyr/express-protocol-handler/blob/master/LICENSE) [![js semistandard style](https://badgen.net/badge/code%20style/semistandard/pink)](https://github.com/Flet/semistandard)
 
 > Resolve custom protocols using Express middleware.
 
@@ -24,24 +25,82 @@ app.get('/resolve', protocolHandler.middleware());
 app.listen(port, () => console.log('listening on port: %i!', port));
 ```
 
+<details>
+  <summary>Click to open HTTP log</summary>
+
+    $ ./example.sh
+
+    # resolve registered protocol: `s3:`
+
     GET /resolve?url=s3://test HTTP/1.1
     Accept: */*
     Accept-Encoding: gzip, deflate
     Connection: keep-alive
     Host: localhost:3000
-    User-Agent: HTTPie/0.9.9
+    User-Agent: HTTPie/1.0.2
+
 
 
     HTTP/1.1 302 Found
     Connection: keep-alive
     Content-Length: 41
     Content-Type: text/plain; charset=utf-8
-    Date: Thu, 20 Dec 2018 13:25:26 GMT
+    Date: Sat, 12 Jan 2019 16:55:26 GMT
     Location: https://example.com
     Vary: Accept
     X-Powered-By: Express
 
-    Found. Redirecting to https://example.com 
+    Found. Redirecting to https://example.com
+
+    # resolve standard protocol: `https:`
+
+    GET /resolve?url=https://google.com HTTP/1.1
+    Accept: */*
+    Accept-Encoding: gzip, deflate
+    Connection: keep-alive
+    Host: localhost:3000
+    User-Agent: HTTPie/1.0.2
+
+
+
+    HTTP/1.1 302 Found
+    Connection: keep-alive
+    Content-Length: 40
+    Content-Type: text/plain; charset=utf-8
+    Date: Sat, 12 Jan 2019 16:55:26 GMT
+    Location: https://google.com
+    Vary: Accept
+    X-Powered-By: Express
+
+    Found. Redirecting to https://google.com
+
+    # resolve unknown protocol: `gdrive:`
+
+    GET /resolve?url=gdrive://test HTTP/1.1
+    Accept: */*
+    Accept-Encoding: gzip, deflate
+    Connection: keep-alive
+    Host: localhost:3000
+    User-Agent: HTTPie/1.0.2
+
+
+
+    HTTP/1.1 400 Bad Request
+    Connection: keep-alive
+    Content-Length: 83
+    Content-Type: application/json; charset=utf-8
+    Date: Sat, 12 Jan 2019 16:55:27 GMT
+    ETag: W/"53-Z2BGf/llR30GzNCkJLqNslE8IJ4"
+    X-Powered-By: Express
+
+    {
+        "error": {
+            "code": 1,
+            "message": "Unknown protocol: `gdrive:`",
+            "name": "ProtocolError"
+        }
+    }
+</details>
 
 ## API
 
