@@ -1,6 +1,7 @@
 'use strict';
 
 const debug = require('debug')('protocol-handler');
+const pCatchIf = require('p-catch-if');
 const pTry = require('p-try');
 
 const reProtocol = /^([a-z0-9.+-]+:)/i;
@@ -145,18 +146,8 @@ class ProtocolHandler {
    * handler.resolve('dummy://unknown/protocol');
    * //=> throws ProtocolError
    */
-  async resolve(url) {
-    try {
-      return (await this._resolve(url));
-    } catch (err) {
-      if (
-        err instanceof ProtocolError &&
-        err.code === ProtocolError.ERR_PROTOCOL_BLACKLISTED
-      ) {
-        return url;
-      }
-      throw err;
-    }
+  resolve(url) {
+    return this._resolve(url).catch(pCatchIf(isBlacklisted, () => url));
   }
 
   /**
@@ -202,6 +193,11 @@ module.exports.ProtocolError = ProtocolError;
 function getProtocol(str) {
   const match = str.trim().match(reProtocol);
   return match && match[0];
+}
+
+function isBlacklisted(err) {
+  return err instanceof ProtocolError &&
+    err.code === ProtocolError.ERR_PROTOCOL_BLACKLISTED;
 }
 
 /**

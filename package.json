@@ -51,6 +51,7 @@
     "tape": "^4.9.2"
   },
   "dependencies": {
+    "p-catch-if": "^1.0.2",
     "p-try": "^2.0.0"
   }
 }
