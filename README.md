@@ -75,6 +75,9 @@ app.listen(port, () => console.log('listening on port: %i!', port));
 -   [ProtocolCallback](#protocolcallback)
     -   [Parameters](#parameters-6)
     -   [Examples](#examples-5)
+-   [ProtocolErrorCallback](#protocolerrorcallback)
+    -   [Parameters](#parameters-7)
+    -   [Examples](#examples-6)
 
 ### ProtocolError
 
@@ -179,6 +182,7 @@ Returns [Express](https://expressjs.com) middleware
 ##### Parameters
 
 -   `param` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of query param containing target url (optional, default `'url'`)
+-   `cb` **[ProtocolErrorCallback](#protocolerrorcallback)?** custom error handling callback
 
 ##### Examples
 
@@ -238,3 +242,28 @@ async function resolve(url) {
 ```
 
 Returns **([String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>)** resolved url _redirect location_
+
+### ProtocolErrorCallback
+
+Custom error calback for Express middleware
+
+Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function)
+
+#### Parameters
+
+-   `err` **[ProtocolError](#protocolerror)** protocol error
+-   `url` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** target url
+
+#### Examples
+
+```javascript
+const handler = new ProtocolHandler();
+handler.protocol('s3://', resolve);
+// Act as passthrough proxy for blacklisted protocols
+app.use(handler.middleware('url', (err, url, res) => {
+  if (err.code !== ProtocolError.ERR_PROTOCOL_BLACKLISTED) {
+    return res.sendStatus(400);
+  }
+  res.redirect(url);
+}));
+```

@@ -153,7 +153,8 @@ class ProtocolHandler {
   /**
    * Returns [Express](https://expressjs.com) middleware
    * @param {String} [param='url'] name of query param containing target url
-   * @returns {import('@types/express').RequestHandler} Express middleware
+   * @param {ProtocolErrorCallback} [cb] custom error handling callback
+   * @param {import('@types/express').RequestHandler} Express middleware
    *
    * @example
    * // create handler
@@ -162,7 +163,7 @@ class ProtocolHandler {
    * // attach to express app
    * app.use(handler.middleware());
    */
-  middleware(param = 'url') {
+  middleware(param = 'url', cb) {
     return async (req, res, next) => {
       const url = decodeURIComponent(req.query[param]);
       try {
@@ -170,8 +171,16 @@ class ProtocolHandler {
         debug('redirect url=%s', redirectUrl || '');
         return res.redirect(redirectUrl);
       } catch (err) {
-        if (err instanceof ProtocolError) return res.sendStatus(400);
-        next(err);
+        if (!(err instanceof ProtocolError)) next(err);
+        if (cb) return cb(err, url, res);
+        if (isBlacklisted(err)) return res.redirect(url);
+        res.status(400).json({
+          error: {
+            name: err.name,
+            code: err.code,
+            message: err.message
+          }
+        });
       }
     };
   }
@@ -220,4 +229,23 @@ function isBlacklisted(err) {
  *   const fileInfo = await fetchInfo(itemId);
  *   return fileInfo.downloadUrl;
  * }
+ */
+
+/**
+ * Custom error calback for Express middleware
+ * @callback ProtocolErrorCallback
+ * @param {ProtocolError} err protocol error
+ * @param {String} url target url
+ * @param {import('@types/express').Response} res middleware response
+ *
+ * @example
+ * const handler = new ProtocolHandler();
+ * handler.protocol('s3://', resolve);
+ * // Act as passthrough proxy for blacklisted protocols
+ * app.use(handler.middleware('url', (err, url, res) => {
+ *   if (err.code !== ProtocolError.ERR_PROTOCOL_BLACKLISTED) {
+ *     return res.sendStatus(400);
+ *   }
+ *   res.redirect(url);
+ * }));
  */
