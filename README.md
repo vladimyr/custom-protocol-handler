@@ -1,7 +1,7 @@
 # express-protocol-handler
 [![build status](https://badgen.net/travis/vladimyr/express-protocol-handler)](https://travis-ci.com/vladimyr/express-protocol-handler/) [![install size](https://badgen.net/packagephobia/install/express-protocol-handler)](https://packagephobia.now.sh/result?p=express-protocol-handler) [![npm package version](https://badgen.net/npm/v/express-protocol-handler)](https://npm.im/express-protocol-handler) [![github license](https://badgen.net/github/license/vladimyr/express-protocol-handler)](https://github.com/vladimyr/express-protocol-handler/blob/master/LICENSE) [![js semistandard style](https://badgen.net/badge/code%20style/semistandard/pink)](https://github.com/Flet/semistandard)
 
-> Resolve custom protocols using Express middleware.
+> Resolve custom protocols using registered handlers.
 
 ## Instalation
 
@@ -9,11 +9,10 @@
 
 ## Usage
 
-```js
-const app = require('express')();
-const protocolHandler = require('express-protocol-handler')();
+This module can be used either in standalone mode or as [Express](https://expressjs.com) middleware.
 
-const port = 3000;
+```js
+const protocolHandler = require('express-protocol-handler')();
 protocolHandler.protocol('s3://', url => 'https://example.com');
 
 // Standalone usage
@@ -21,6 +20,8 @@ protocolHandler.resolve('s3://test').then(url => console.log(url));
 //=> https://example.com
 
 // Using as Express middleware
+const port = 3000;
+const app = require('express')();
 app.get('/resolve', protocolHandler.middleware());
 app.listen(port, () => console.log('listening on port: %i!', port));
 ```
@@ -318,11 +319,9 @@ Type: [Function](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Sta
 ```javascript
 const handler = new ProtocolHandler();
 handler.protocol('s3://', resolve);
-// Act as passthrough proxy for blacklisted protocols
+// Redirect ONLY registered protocols
 app.use(handler.middleware('url', (err, url, res) => {
-  if (err.code !== ProtocolError.ERR_PROTOCOL_BLACKLISTED) {
-    return res.sendStatus(400);
-  }
-  res.redirect(url);
+  if (!err) res.redirect(url);
+  return res.sendStatus(400);
 }));
 ```
