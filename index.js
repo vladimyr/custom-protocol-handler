@@ -5,7 +5,7 @@ const pCatchIf = require('p-catch-if');
 const pTry = require('p-try');
 
 const reProtocol = /^([a-z0-9.+-]+:)/i;
-const BLACKLISTED_PROTOCOLS = ['http:', 'https:', 'file:'];
+const BLACKLISTED_PROTOCOLS = ['http:', 'https:', 'file:', 'blob:', 'about:'];
 
 const defineProperty = (obj, name, value) => Object.defineProperty(obj, name, { value });
 const isProtocolRelative = url => url.trim().startsWith('//');
