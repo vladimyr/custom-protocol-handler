@@ -1,11 +1,39 @@
 'use strict';
 
-const { URL } = require('url');
 const debug = require('debug')('protocol-handler');
 const pTry = require('p-try');
 
-const BLACKLISTED_SCHEMES = ['http:', 'https:'];
-const isValidScheme = str => /^[a-z0-9+]{2,}:$/.test(str);
+const reProtocol = /^([a-z0-9.+-]+:)/i;
+const BLACKLISTED_PROTOCOLS = ['http:', 'https:', 'file:'];
+
+const defineProperty = (obj, name, value) => Object.defineProperty(obj, name, { value });
+const isProtocolRelative = url => url.trim().startsWith('//');
+
+/**
+ * Custom error indicating invalid, unknown or blacklisted protocol
+ * @augments Error
+ */
+class ProtocolError extends Error {
+  /**
+   *
+   * @param {ProtocolError.code} code Error code
+   * @param {String} message Error message
+   */
+  constructor(code, message) {
+    super(message);
+    this.code = code;
+  }
+}
+defineProperty(ProtocolError.prototype, 'name', ProtocolError.name);
+/**
+ * @typedef {Object} ProtocolError.code
+ * @property {Number} ERR_PROTOCOL_INVALID
+ * @property {Number} ERR_PROTOCOL_UNKNOWN
+ * @property {Number} ERR_PROTOCOL_BLACKLISTED
+ */
+ProtocolError.ERR_PROTOCOL_INVALID = -1;
+ProtocolError.ERR_PROTOCOL_UNKNOWN = 1;
+ProtocolError.ERR_PROTOCOL_BLACKLISTED = 2;
 
 /**
  * Create protocol handler
@@ -14,21 +42,19 @@ const isValidScheme = str => /^[a-z0-9+]{2,}:$/.test(str);
 class ProtocolHandler {
   /**
    * @constructor
-   * @param {String} [param='url'] name of query param containing target url
    * @param {ProtocolHandlerOptions} [options={}] protocol handler options
    */
-  constructor(param = 'url', { blacklist = [] } = {}) {
-    this._param = param;
-    this._blacklist = [...BLACKLISTED_SCHEMES, ...blacklist];
+  constructor({ blacklist = [] } = {}) {
+    this._blacklist = [...BLACKLISTED_PROTOCOLS, ...blacklist];
     this._handlers = new Map();
   }
 
   /**
-   * Register protocol handler
+   * Registers protocol handler
    * @param {String} scheme protocol scheme
    * @param {ProtocolCallback} handler protocol handler
    * @returns {ProtocolHandler} instance to allow chaining
-   *
+   * @throws {ProtocolError} throws if protocol scheme is invalid or blacklisted
    *
    * @example
    * // register multiple handlers
@@ -39,14 +65,21 @@ class ProtocolHandler {
    */
   protocol(scheme, handler) {
     debug('atempt register scheme: %s', scheme);
-    scheme = normalize(scheme);
-    if (this._blacklist.includes(scheme)) {
-      throw new TypeError(`Registering handler for \`${scheme}\` is not allowed.`);
+    const protocol = getProtocol(scheme);
+    if (!protocol) {
+      throw new ProtocolError(
+        ProtocolError.ERR_PROTOCOL_INVALID,
+        `Invalid protocol: \`${scheme}\``
+      );
     }
-    if (!isValidScheme(scheme)) {
-      throw new TypeError('Invalid protocol provided.');
+    debug('protocol=%s', protocol);
+    if (this._blacklist.includes(protocol)) {
+      throw new ProtocolError(
+        ProtocolError.ERR_PROTOCOL_BLACKLISTED,
+        `Registering handler for \`${scheme}\` is not allowed.`
+      );
     }
-    this._handlers.set(scheme, handler);
+    this._handlers.set(protocol, handler);
     debug('scheme registered: %s', scheme);
     return this;
   }
@@ -65,10 +98,40 @@ class ProtocolHandler {
     return new Set(this._handlers.keys());
   }
 
+  async _resolve(url) {
+    debug('url=%s', url);
+    if (url && isProtocolRelative(url)) return url;
+    const protocol = getProtocol(url);
+    if (!protocol) {
+      throw new ProtocolError(
+        ProtocolError.ERR_PROTOCOL_INVALID,
+        `Invalid url: \`${url}\``
+      );
+    }
+    debug('protocol=%s', protocol);
+    const handler = this._handlers.get(protocol);
+    if (handler) {
+      const resolvedUrl = await pTry(() => handler(url));
+      debug('resolved url=%s', resolvedUrl || '');
+      return resolvedUrl;
+    }
+    if (this._blacklist.includes(protocol)) {
+      throw new ProtocolError(
+        ProtocolError.ERR_PROTOCOL_BLACKLISTED,
+        `Blacklisted protocol: \`${protocol}\``
+      );
+    }
+    throw new ProtocolError(
+      ProtocolError.ERR_PROTOCOL_UNKNOWN,
+      `Unknown protocol: \`${protocol}\``
+    );
+  }
+
   /**
-   * Resolve url with registered protocol handler
+   * Asynchronously resolves url with registered protocol handler
    * @param {String} url target url
    * @returns {Promise<String>} resolved url, redirect location
+   * @throws {ProtocolError} throws if url contains invalid or unknown protocol
    *
    * @example
    * // create handler
@@ -77,17 +140,29 @@ class ProtocolHandler {
    * // resolve url
    * handler.resolve('s3://test').then(url => console.log(url));
    * //=> https://example.com
+   * handler.resolve('file:///local/file.txt').then(url => console.log(url));
+   * //=> file:///local/file.txt
+   * handler.resolve('dummy://unknown/protocol');
+   * //=> throws ProtocolError
    */
-  resolve(url) {
-    const protocol = getProtocol(url);
-    debug('url=%s, protocol=%s', url, protocol);
-    const handler = this._handlers.get(protocol);
-    return pTry(() => handler && handler(url));
+  async resolve(url) {
+    try {
+      return (await this._resolve(url));
+    } catch (err) {
+      if (
+        err instanceof ProtocolError &&
+        err.code === ProtocolError.ERR_PROTOCOL_BLACKLISTED
+      ) {
+        return url;
+      }
+      throw err;
+    }
   }
 
   /**
    * Returns [Express](https://expressjs.com) middleware
-   * @returns {function(IRequest, IResponse)} Express middleware
+   * @param {String} [param='url'] name of query param containing target url
+   * @returns {import('@types/express').RequestHandler} Express middleware
    *
    * @example
    * // create handler
@@ -96,13 +171,17 @@ class ProtocolHandler {
    * // attach to express app
    * app.use(handler.middleware());
    */
-  middleware() {
-    return async (req, res) => {
-      const url = decodeURIComponent(req.query[this._param]);
-      const redirectUrl = await this.resolve(url);
-      debug('redirect url=%s', redirectUrl || '');
-      if (!redirectUrl) return res.sendStatus(400);
-      return res.redirect(redirectUrl);
+  middleware(param = 'url') {
+    return async (req, res, next) => {
+      const url = decodeURIComponent(req.query[param]);
+      try {
+        const redirectUrl = await this._resolve(url, null);
+        debug('redirect url=%s', redirectUrl || '');
+        return res.redirect(redirectUrl);
+      } catch (err) {
+        if (err instanceof ProtocolError) return res.sendStatus(400);
+        next(err);
+      }
     };
   }
 }
@@ -110,24 +189,19 @@ class ProtocolHandler {
 /**
  * Create new ProtocolHandler instance
  * @name module.exports
- * @param {String} [param='url'] name of query param containing target url
  * @param {ProtocolHandlerOptions} [options={}] protocol handler options
  * @returns {ProtocolHandler} instance
  *
  * @example
- * const handler = require('express-protocol-handler')('query');
+ * const handler = require('express-protocol-handler')();
  */
-module.exports = (param, options) => new ProtocolHandler(param, options);
+module.exports = options => new ProtocolHandler(options);
 module.exports.ProtocolHandler = ProtocolHandler;
+module.exports.ProtocolError = ProtocolError;
 
-function normalize(scheme = '') {
-  return scheme.toLowerCase().trim().replace(/:\/\/$/, ':');
-}
-
-function getProtocol(url) {
-  try {
-    return new URL(url).protocol;
-  } catch (err) {}
+function getProtocol(str) {
+  const match = str.trim().match(reProtocol);
+  return match && match[0];
 }
 
 /**
@@ -150,17 +224,4 @@ function getProtocol(url) {
  *   const fileInfo = await fetchInfo(itemId);
  *   return fileInfo.downloadUrl;
  * }
- */
-/**
- * @name IRequest
- * @desc Express server request
- * @typedef {import("@types/express").Request} IRequest
- * @see https://expressjs.com/en/4x/api.html#req
- */
-
-/**
- * @name IResponse
- * @desc Express server response
- * @typedef {import("@types/express").Response} IResponse
- * @see https://expressjs.com/en/4x/api.html#res
  */

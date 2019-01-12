@@ -15,12 +15,13 @@ const protocolHandler = require('express-protocol-handler')();
 const port = 3000;
 protocolHandler.protocol('s3://', url => 'https://example.com');
 
-app.get('/resolve', protocolHandler.middleware());
-app.listen(port, () => console.log('listening on port: %i!', port));
-
 // Standalone usage
 protocolHandler.resolve('s3://test').then(url => console.log(url));
 //=> https://example.com
+
+// Using as Express middleware
+app.get('/resolve', protocolHandler.middleware());
+app.listen(port, () => console.log('listening on port: %i!', port));
 ```
 
     GET /resolve?url=s3://test HTTP/1.1
@@ -48,29 +49,53 @@ protocolHandler.resolve('s3://test').then(url => console.log(url));
 
 #### Table of Contents
 
--   [ProtocolHandler](#protocolhandler)
+-   [ProtocolError](#protocolerror)
     -   [Parameters](#parameters)
+-   [ProtocolError.code](#protocolerrorcode)
+    -   [Properties](#properties)
+-   [ProtocolHandler](#protocolhandler)
+    -   [Parameters](#parameters-1)
     -   [protocol](#protocol)
-        -   [Parameters](#parameters-1)
+        -   [Parameters](#parameters-2)
         -   [Examples](#examples)
     -   [protocols](#protocols)
-        -   [Properties](#properties)
+        -   [Properties](#properties-1)
         -   [Examples](#examples-1)
     -   [resolve](#resolve)
-        -   [Parameters](#parameters-2)
+        -   [Parameters](#parameters-3)
         -   [Examples](#examples-2)
     -   [middleware](#middleware)
+        -   [Parameters](#parameters-4)
         -   [Examples](#examples-3)
 -   [module.exports](#moduleexports)
-    -   [Parameters](#parameters-3)
+    -   [Parameters](#parameters-5)
     -   [Examples](#examples-4)
 -   [ProtocolHandlerOptions](#protocolhandleroptions)
-    -   [Properties](#properties-1)
+    -   [Properties](#properties-2)
 -   [ProtocolCallback](#protocolcallback)
-    -   [Parameters](#parameters-4)
+    -   [Parameters](#parameters-6)
     -   [Examples](#examples-5)
--   [IRequest](#irequest)
--   [IResponse](#iresponse)
+
+### ProtocolError
+
+**Extends Error**
+
+Custom error indicating invalid, unknown or blacklisted protocol
+
+#### Parameters
+
+-   `code` **[ProtocolError.code](#protocolerrorcode)** Error code
+-   `message` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Error message
+
+### ProtocolError.code
+
+Type: [Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)
+
+#### Properties
+
+-   `ERR_PROTOCOL_INVALID` **[Number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** 
+-   `ERR_PROTOCOL_UNKNOWN` **[Number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** 
+-   `ERR_PROTOCOL_BLACKLISTED` **[Number](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number)** 
 
 ### ProtocolHandler
 
@@ -78,13 +103,12 @@ Create protocol handler
 
 #### Parameters
 
--   `param` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of query param containing target url (optional, default `'url'`)
 -   `options` **[ProtocolHandlerOptions](#protocolhandleroptions)** protocol handler options (optional, default `{}`)
     -   `options.blacklist`   (optional, default `[]`)
 
 #### protocol
 
-Register protocol handler
+Registers protocol handler
 
 ##### Parameters
 
@@ -100,6 +124,8 @@ handler
   .protocol('s3://', resolve)
   .protocol('gdrive://', resolve);
 ```
+
+-   Throws **[ProtocolError](#protocolerror)** throws if protocol scheme is invalid or blacklisted
 
 Returns **[ProtocolHandler](#protocolhandler)** instance to allow chaining
 
@@ -121,7 +147,7 @@ console.log(handler.protocols.has('s3:'));
 
 #### resolve
 
-Resolve url with registered protocol handler
+Asynchronously resolves url with registered protocol handler
 
 ##### Parameters
 
@@ -136,13 +162,23 @@ handler.protocol('s3://', url => 'https://example.com');
 // resolve url
 handler.resolve('s3://test').then(url => console.log(url));
 //=> https://example.com
+handler.resolve('file:///local/file.txt').then(url => console.log(url));
+//=> file:///local/file.txt
+handler.resolve('dummy://unknown/protocol');
+//=> throws ProtocolError
 ```
+
+-   Throws **[ProtocolError](#protocolerror)** throws if url contains invalid or unknown protocol
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>** resolved url, redirect location
 
 #### middleware
 
 Returns [Express](https://expressjs.com) middleware
+
+##### Parameters
+
+-   `param` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of query param containing target url (optional, default `'url'`)
 
 ##### Examples
 
@@ -154,21 +190,18 @@ handler.protocol('s3://', resolve);
 app.use(handler.middleware());
 ```
 
-Returns **function ([IRequest](#irequest), [IResponse](#iresponse))** Express middleware
-
 ### module.exports
 
 Create new ProtocolHandler instance
 
 #### Parameters
 
--   `param` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** name of query param containing target url (optional, default `'url'`)
 -   `options` **[ProtocolHandlerOptions](#protocolhandleroptions)** protocol handler options (optional, default `{}`)
 
 #### Examples
 
 ```javascript
-const handler = require('express-protocol-handler')('query');
+const handler = require('express-protocol-handler')();
 ```
 
 Returns **[ProtocolHandler](#protocolhandler)** instance
@@ -205,15 +238,3 @@ async function resolve(url) {
 ```
 
 Returns **([String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)&lt;[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)>)** resolved url _redirect location_
-
-### IRequest
-
--   **See: <https://expressjs.com/en/4x/api.html#req>**
-
-Express server request
-
-### IResponse
-
--   **See: <https://expressjs.com/en/4x/api.html#res>**
-
-Express server response
