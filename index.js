@@ -24,6 +24,14 @@ class ProtocolError extends Error {
     super(message);
     this.code = code;
   }
+
+  toJSON() {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message
+    };
+  }
 }
 defineProperty(ProtocolError.prototype, 'name', ProtocolError.name);
 /**
@@ -174,13 +182,7 @@ class ProtocolHandler {
         if (!(err instanceof ProtocolError)) next(err);
         if (cb) return cb(err, url, res);
         if (isBlacklisted(err)) return res.redirect(url);
-        res.status(400).json({
-          error: {
-            name: err.name,
-            code: err.code,
-            message: err.message
-          }
-        });
+        res.status(400).json({ error: err });
       }
     };
   }
