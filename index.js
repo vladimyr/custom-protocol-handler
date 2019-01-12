@@ -179,7 +179,7 @@ class ProtocolHandler {
         debug('redirect url=%s', redirectUrl || '');
         return res.redirect(redirectUrl);
       } catch (err) {
-        if (!(err instanceof ProtocolError)) next(err);
+        if (!(err instanceof ProtocolError)) return next(err);
         if (cb) return cb(err, url, res);
         if (isBlacklisted(err)) return res.redirect(url);
         res.status(400).json({ error: err });
