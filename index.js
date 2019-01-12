@@ -195,7 +195,7 @@ class ProtocolHandler {
  * @returns {ProtocolHandler} instance
  *
  * @example
- * const handler = require('express-protocol-handler')();
+ * const handler = require('custom-protocol-handler')();
  */
 module.exports = options => new ProtocolHandler(options);
 module.exports.ProtocolHandler = ProtocolHandler;

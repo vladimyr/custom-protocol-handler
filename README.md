@@ -1,18 +1,18 @@
-# express-protocol-handler
-[![build status](https://badgen.net/travis/vladimyr/express-protocol-handler)](https://travis-ci.com/vladimyr/express-protocol-handler/) [![install size](https://badgen.net/packagephobia/install/express-protocol-handler)](https://packagephobia.now.sh/result?p=express-protocol-handler) [![npm package version](https://badgen.net/npm/v/express-protocol-handler)](https://npm.im/express-protocol-handler) [![github license](https://badgen.net/github/license/vladimyr/express-protocol-handler)](https://github.com/vladimyr/express-protocol-handler/blob/master/LICENSE) [![js semistandard style](https://badgen.net/badge/code%20style/semistandard/pink)](https://github.com/Flet/semistandard)
+# custom-protocol-handler
+[![build status](https://badgen.net/travis/vladimyr/custom-protocol-handler)](https://travis-ci.com/vladimyr/custom-protocol-handler/) [![install size](https://badgen.net/packagephobia/install/custom-protocol-handler)](https://packagephobia.now.sh/result?p=custom-protocol-handler) [![npm package version](https://badgen.net/npm/v/custom-protocol-handler)](https://npm.im/custom-protocol-handler) [![github license](https://badgen.net/github/license/vladimyr/custom-protocol-handler)](https://github.com/vladimyr/custom-protocol-handler/blob/master/LICENSE) [![js semistandard style](https://badgen.net/badge/code%20style/semistandard/pink)](https://github.com/Flet/semistandard)
 
 > Resolve custom protocols using registered handlers.
 
 ## Instalation
 
-    $ npm install express-protocol-handler
+    $ npm install custom-protocol-handler
 
 ## Usage
 
 This module can be used either in standalone mode or as [Express](https://expressjs.com) middleware.
 
 ```js
-const protocolHandler = require('express-protocol-handler')();
+const protocolHandler = require('custom-protocol-handler')();
 protocolHandler.protocol('s3://', url => 'https://example.com');
 
 // Standalone usage
@@ -265,7 +265,7 @@ Create new ProtocolHandler instance
 #### Examples
 
 ```javascript
-const handler = require('express-protocol-handler')();
+const handler = require('custom-protocol-handler')();
 ```
 
 Returns **[ProtocolHandler](#protocolhandler)** instance
